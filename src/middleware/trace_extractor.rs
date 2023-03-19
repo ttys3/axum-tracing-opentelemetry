@@ -134,7 +134,7 @@ impl<B> MakeSpan<B> for OtelMakeSpan {
         let http_route = req
             .extensions()
             .get::<MatchedPath>()
-            .map_or("", |mp| mp.as_str())
+            .map_or_else(|| req.uri().path(), |mp| mp.as_str())
             .to_owned();
 
         let uri = if let Some(uri) = req.extensions().get::<OriginalUri>() {
@@ -318,6 +318,7 @@ fn create_context_with_trace(
     remote_context: opentelemetry::Context,
 ) -> (opentelemetry::Context, TraceId) {
     if !remote_context.span().span_context().is_valid() {
+        dbg!("xxxxxxxxxxx remote invalid");
         // create a fake remote context but with a fresh new trace_id
         use opentelemetry::sdk::trace::IdGenerator;
         use opentelemetry::sdk::trace::RandomIdGenerator;
@@ -325,7 +326,7 @@ fn create_context_with_trace(
         let trace_id = RandomIdGenerator::default().new_trace_id();
         let new_span_context = SpanContext::new(
             trace_id,
-            SpanId::INVALID,
+            SpanId::from_hex("1").unwrap(),
             remote_context.span().span_context().trace_flags(),
             false,
             remote_context.span().span_context().trace_state().clone(),
@@ -335,6 +336,7 @@ fn create_context_with_trace(
             trace_id,
         )
     } else {
+        dbg!("xxxxxxxxxxx remote ok");
         let remote_span = remote_context.span();
         let span_context = remote_span.span_context();
         let trace_id = span_context.trace_id();
