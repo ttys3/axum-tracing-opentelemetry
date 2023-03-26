@@ -156,8 +156,8 @@ impl<B> MakeSpan<B> for OtelMakeSpan {
             .unwrap_or_default();
         let http_method_v = http_method(req.method());
         let name = format!("{http_method_v} {http_route}");
-        let (remote_context, trace_id) =
-            create_context_with_trace(extract_remote_context(req.headers()));
+        let parent_ctx = extract_remote_context(req.headers());
+        let trace_id = parent_ctx.span().span_context().trace_id();
         let span = tracing::info_span!(
             "HTTP request",
             otel.name= %name,
@@ -174,7 +174,7 @@ impl<B> MakeSpan<B> for OtelMakeSpan {
             otel.status_code = Empty,
             trace_id = %trace_id,
         );
-        tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, remote_context);
+        tracing_opentelemetry::OpenTelemetrySpanExt::set_parent(&span, parent_ctx);
         span
     }
 }
